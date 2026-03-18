@@ -322,9 +322,46 @@ input[type=range]{flex:1;accent-color:var(--acc);height:3px;}
   <!-- Scale overlay (guitar/uke only) -->
   <select id="scaleSel" onchange="onScaleChange()">
     <option value="">no scale</option>
-    <option value="major">Major</option><option value="minor">Nat. Minor</option>
-    <option value="pentatonic">Pentatonic</option><option value="blues">Blues</option>
-    <option value="dorian">Dorian</option><option value="mixolydian">Mixolydian</option>
+    <optgroup label="Major modes">
+      <option value="major">Ionian (Major)</option>
+      <option value="dorian">Dorian</option>
+      <option value="phrygian">Phrygian</option>
+      <option value="lydian">Lydian</option>
+      <option value="mixolydian">Mixolydian</option>
+      <option value="minor">Aeolian (Nat. Minor)</option>
+      <option value="locrian">Locrian</option>
+    </optgroup>
+    <optgroup label="Melodic minor">
+      <option value="melodicMinor">Melodic Minor</option>
+      <option value="dorianb2">Dorian ♭2</option>
+      <option value="lydianAug">Lydian Aug</option>
+      <option value="lydianDom">Lydian Dom</option>
+      <option value="mixolydianb6">Mixolydian ♭6</option>
+      <option value="halfDimished">Half Diminished</option>
+      <option value="altered">Altered</option>
+    </optgroup>
+    <optgroup label="Harmonic minor">
+      <option value="harmonicMinor">Harmonic Minor</option>
+      <option value="phrygianDom">Phrygian Dom</option>
+    </optgroup>
+    <optgroup label="Pentatonic &amp; blues">
+      <option value="pentatonic">Major Pentatonic</option>
+      <option value="minorPenta">Minor Pentatonic</option>
+      <option value="blues">Blues</option>
+      <option value="majorBlues">Major Blues</option>
+    </optgroup>
+    <optgroup label="Symmetric">
+      <option value="wholeTone">Whole Tone</option>
+      <option value="diminished">Diminished (W-H)</option>
+      <option value="dominantDim">Dom Diminished (H-W)</option>
+    </optgroup>
+    <optgroup label="World &amp; exotic">
+      <option value="hungarianMin">Hungarian Minor</option>
+      <option value="doubleHarm">Double Harmonic</option>
+      <option value="hirajoshi">Hirajoshi</option>
+      <option value="insen">Insen</option>
+      <option value="enigmatic">Enigmatic</option>
+    </optgroup>
   </select>
   <div class="sep" id="sepScale"></div>
 
@@ -492,8 +529,40 @@ const CHORD_INTERVALS = {
 const CHORD_SUFFIX = {major:'',minor:'m','7':'7',maj7:'maj7',m7:'m7',sus2:'sus2',sus4:'sus4',dim:'°',aug:'+',add9:'add9'};
 const INTERVAL_NAMES = {0:'R',2:'2',3:'b3',4:'3',5:'4',6:'b5',7:'5',8:'#5',9:'6',10:'b7',11:'7',14:'9'};
 const SCALE_INTERVALS = {
-  major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],pentatonic:[0,2,4,7,9],
-  blues:[0,3,5,6,7,10],dorian:[0,2,3,5,7,9,10],mixolydian:[0,2,4,5,7,9,10]
+  // ── Major modes ──────────────────────────────────────────
+  major:        [0,2,4,5,7,9,11],   // Ionian
+  dorian:       [0,2,3,5,7,9,10],
+  phrygian:     [0,1,3,5,7,8,10],
+  lydian:       [0,2,4,6,7,9,11],
+  mixolydian:   [0,2,4,5,7,9,10],
+  minor:        [0,2,3,5,7,8,10],   // Aeolian / Nat. Minor
+  locrian:      [0,1,3,5,6,8,10],
+  // ── Melodic minor modes ──────────────────────────────────
+  melodicMinor: [0,2,3,5,7,9,11],
+  dorianb2:     [0,1,3,5,7,9,10],   // Phrygian ♮6
+  lydianAug:    [0,2,4,6,8,9,11],   // Lydian #5
+  lydianDom:    [0,2,4,6,7,9,10],   // Lydian b7
+  mixolydianb6: [0,2,4,5,7,8,10],   // Hindu / Mixolydian b6
+  halfDimished: [0,2,3,5,6,8,10],   // Locrian ♮2
+  altered:      [0,1,3,4,6,8,10],   // Super Locrian
+  // ── Harmonic minor & modes ───────────────────────────────
+  harmonicMinor:[0,2,3,5,7,8,11],
+  phrygianDom:  [0,1,4,5,7,8,10],   // Harmonic minor mode 5
+  // ── Pentatonic & blues ───────────────────────────────────
+  pentatonic:   [0,2,4,7,9],        // Major pentatonic
+  minorPenta:   [0,3,5,7,10],       // Minor pentatonic
+  blues:        [0,3,5,6,7,10],     // Blues (minor penta + b5)
+  majorBlues:   [0,2,3,4,7,9],      // Major blues
+  // ── Symmetric ────────────────────────────────────────────
+  wholeTone:    [0,2,4,6,8,10],
+  diminished:   [0,2,3,5,6,8,9,11], // Whole-half diminished
+  dominantDim:  [0,1,3,4,6,7,9,10], // Half-whole diminished
+  // ── World / exotic ───────────────────────────────────────
+  hungarianMin: [0,2,3,6,7,8,11],   // Hungarian minor
+  doubleHarm:   [0,1,4,5,7,8,11],   // Double harmonic / Byzantine
+  hirajoshi:    [0,2,3,7,8],         // Japanese Hirajoshi
+  insen:        [0,1,5,7,10],        // Japanese Insen
+  enigmatic:    [0,1,4,6,8,10,11],   // Enigmatic
 };
 const PROGRESSIONS = {
   // ── Common ──────────────────────────────────────────────────────────────────
@@ -1896,6 +1965,9 @@ function onChordChange() {
 
 function onScaleChange() {
   scaleOverlay=document.getElementById('scaleSel').value;
+  // keep mobile dropdown in sync
+  const mob = document.getElementById('mobScaleSel');
+  if (mob) mob.value = scaleOverlay;
   if (instrument==='piano') drawPiano(); else drawFretboard();
 }
 
@@ -2161,11 +2233,48 @@ function initMobile() {
     </div>
     <div id="mobScaleWrap">
       <div style="font-size:11px;color:var(--t3);margin-bottom:5px;">Scale overlay</div>
-      <select onchange="document.getElementById('scaleSel').value=this.value;onScaleChange();" style="width:100%;">
+      <select id="mobScaleSel" onchange="document.getElementById('scaleSel').value=this.value;onScaleChange();" style="width:100%;">
         <option value="">no scale</option>
-        <option value="major">Major</option><option value="minor">Nat. Minor</option>
-        <option value="pentatonic">Pentatonic</option><option value="blues">Blues</option>
-        <option value="dorian">Dorian</option><option value="mixolydian">Mixolydian</option>
+        <optgroup label="Major modes">
+          <option value="major">Ionian (Major)</option>
+          <option value="dorian">Dorian</option>
+          <option value="phrygian">Phrygian</option>
+          <option value="lydian">Lydian</option>
+          <option value="mixolydian">Mixolydian</option>
+          <option value="minor">Aeolian (Nat. Minor)</option>
+          <option value="locrian">Locrian</option>
+        </optgroup>
+        <optgroup label="Melodic minor">
+          <option value="melodicMinor">Melodic Minor</option>
+          <option value="dorianb2">Dorian ♭2</option>
+          <option value="lydianAug">Lydian Aug</option>
+          <option value="lydianDom">Lydian Dom</option>
+          <option value="mixolydianb6">Mixolydian ♭6</option>
+          <option value="halfDimished">Half Diminished</option>
+          <option value="altered">Altered</option>
+        </optgroup>
+        <optgroup label="Harmonic minor">
+          <option value="harmonicMinor">Harmonic Minor</option>
+          <option value="phrygianDom">Phrygian Dom</option>
+        </optgroup>
+        <optgroup label="Pentatonic &amp; blues">
+          <option value="pentatonic">Major Pentatonic</option>
+          <option value="minorPenta">Minor Pentatonic</option>
+          <option value="blues">Blues</option>
+          <option value="majorBlues">Major Blues</option>
+        </optgroup>
+        <optgroup label="Symmetric">
+          <option value="wholeTone">Whole Tone</option>
+          <option value="diminished">Diminished (W-H)</option>
+          <option value="dominantDim">Dom Diminished (H-W)</option>
+        </optgroup>
+        <optgroup label="World &amp; exotic">
+          <option value="hungarianMin">Hungarian Minor</option>
+          <option value="doubleHarm">Double Harmonic</option>
+          <option value="hirajoshi">Hirajoshi</option>
+          <option value="insen">Insen</option>
+          <option value="enigmatic">Enigmatic</option>
+        </optgroup>
       </select>
     </div>
     <div style="margin-top:10px;">
