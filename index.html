@@ -388,8 +388,8 @@ input[type=range]{flex:1;accent-color:var(--acc);height:3px;}
       <div class="ptitle">sound shaping</div>
       <div class="knob-row">
         <label>reverb</label>
-        <input type="range" id="reverbAmt" min="0" max="100" value="30" oninput="updateFX()"/>
-        <span class="knob-val" id="reverbVal">30%</span>
+        <input type="range" id="reverbAmt" min="0" max="100" value="0" oninput="updateFX()"/>
+        <span class="knob-val" id="reverbVal">0%</span>
       </div>
       <div class="knob-row">
         <label>sustain</label>
@@ -530,7 +530,7 @@ let soundType = 'acoustic';
 let ukeTuning = 'high';
 let pianoOctaves = 3;
 let scaleOverlay = '';
-let reverbAmount = 0.30;
+let reverbAmount = 0;
 let sustainAmount = 0.50;
 let volumeAmount = 0.70;
 let progression = [];
@@ -1615,6 +1615,7 @@ function renderProg() {
 }
 function loadProgChord(ch) {
   currentRoot=ch.root; currentType=ch.type;
+  currentPosIdx=0;
   document.getElementById('rootSel').value=ch.root;
   document.getElementById('typeSel').value=ch.type;
   applyChord(0); buildProgPresets();
@@ -1654,7 +1655,7 @@ function switchInstrument(inst) {
   instrument = inst;
   // Update nav tabs
   ['guitar','ukulele','piano'].forEach(i=>{
-    document.getElementById(`tab-${i}`).classList.toggle('active',i===inst);
+    document.getElementById('tab-'+i).classList.toggle('active',i===inst);
   });
   // Show/hide canvases
   const sw = document.getElementById('stringedWrap');
@@ -1667,6 +1668,7 @@ function switchInstrument(inst) {
   document.getElementById('sepScale').style.display = inst==='piano'?'none':'';
   document.getElementById('ukeTuningWrap').style.display = inst==='ukulele'?'flex':'none';
   document.getElementById('pianoOctaveWrap').style.display = inst==='piano'?'flex':'none';
+  // posTabs and sepPos: hide for piano, will be restored by applyChord for string instruments
   document.getElementById('sepPos').style.display = inst==='piano'?'none':'';
   document.getElementById('posTabs').style.display = inst==='piano'?'none':'';
 
@@ -1683,8 +1685,11 @@ function switchInstrument(inst) {
     updatePositionsPanel(null);
   } else {
     initFretboard();
-    const voicings = getVoicings(currentRoot, currentType, inst);
+    // applyChord -> updatePositionsPanel populates both desktop + mobile badges
     applyChord(0);
+    // Re-show toolbar position tabs (applyChord rebuilds their content)
+    document.getElementById('posTabs').style.display = '';
+    document.getElementById('sepPos').style.display = '';
   }
   buildProgPresets();
   updateStatus();
@@ -1737,7 +1742,7 @@ function onChordChange() {
   currentPosIdx = 0;
   if (appMode==='explore') {
     if (instrument==='piano') { applyPianoChord(0); updatePositionsPanel(null); }
-    else applyChord(0);
+    else { applyChord(0); document.getElementById('posTabs').style.display=''; document.getElementById('sepPos').style.display=''; }
   }
   buildProgPresets();
   updateStatus();
@@ -1928,6 +1933,10 @@ function initMobile() {
   // Initial mob chord sync
   updateMobChord();
   buildMobProgPresets();
+  // Open panel drawer by default
+  mobDrawerOpen = true;
+  document.getElementById('mobDrawer').classList.add('open');
+  document.getElementById('mobPanelBtn').classList.add('panel-open');
 }
 
 </script>
@@ -1979,7 +1988,7 @@ function initMobile() {
       <button class="play-btn" onclick="playSound('arp')" style="padding:12px 6px;font-size:13px;">♩ arpeggio</button>
     </div>
     <div class="knob-row"><label style="font-size:11px;color:var(--t3);min-width:55px;">reverb</label>
-      <input type="range" min="0" max="100" value="30" oninput="syncFX('reverb',this.value)"/><span id="mobRevVal" style="font-size:10px;color:var(--t2);min-width:30px;text-align:right">30%</span></div>
+      <input type="range" min="0" max="100" value="0" oninput="syncFX('reverb',this.value)"/><span id="mobRevVal" style="font-size:10px;color:var(--t2);min-width:30px;text-align:right">0%</span></div>
     <div class="knob-row"><label style="font-size:11px;color:var(--t3);min-width:55px;">sustain</label>
       <input type="range" min="0" max="100" value="50" oninput="syncFX('sustain',this.value)"/><span id="mobSusVal" style="font-size:10px;color:var(--t2);min-width:30px;text-align:right">50%</span></div>
     <div class="knob-row"><label style="font-size:11px;color:var(--t3);min-width:55px;">volume</label>
