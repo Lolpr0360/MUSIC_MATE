@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Music Mate</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;600;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0a0b; --s1:#141416; --s2:#1c1c1f; --s3:#242428; --s4:#2e2e33;
+  --b1:#3a3a40; --b2:#52525a; --b3:#7a7a85;
+  --t1:#f4f0e8; --t2:#b8b4ac; --t3:#787470;
+  --acc:#f0c060; --acc2:#60c8f0; --acc3:#c060f0; --accr:#f06060; --accg:#60f0a0;
+  --wood:#3a2810; --wood2:#4e3618; --fret:#7a7060; --str:#c8b890;
+  --piano-w:#f5f0e8; --piano-b:#1a1a1f; --piano-hl:#f0c060;
+  --uke-wood:#5a3820;
+  --rad:8px; --rad2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--t1);font-family:'Space Mono',monospace;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── TOP NAV ── */
+nav{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 20px;display:flex;align-items:center;gap:0;flex-shrink:0;height:52px;}
+.app-title{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--acc);letter-spacing:-0.5px;margin-right:24px;white-space:nowrap;}
+.app-title span{color:var(--b3);font-weight:400;}
+
+.inst-tabs{display:flex;gap:0;height:100%;}
+.inst-tab{
+  display:flex;align-items:center;gap:8px;padding:0 20px;
+  font-family:'Unbounded',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;
+  cursor:pointer;border:none;background:transparent;color:var(--t3);
+  border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;
+}
+.inst-tab:hover{color:var(--t2);}
+.inst-tab.active{color:var(--acc);border-bottom-color:var(--acc);}
+.inst-tab .icon{font-size:16px;}
+
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+
+/* ── TOOLBAR ── */
+.toolbar{
+  background:var(--s2);border-bottom:1px solid var(--b1);
+  padding:8px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;
+}
+select,button{
+  background:var(--s3);border:1px solid var(--b1);color:var(--t1);
+  font-family:'Space Mono',monospace;font-size:12px;border-radius:6px;
+  padding:5px 10px;cursor:pointer;transition:all 0.15s;
+}
+select:hover,button:hover{border-color:var(--b2);background:var(--s4);}
+select:focus{outline:none;border-color:var(--acc);}
+.btn-acc{background:var(--acc);color:#1a0e00;border-color:var(--acc);font-weight:700;}
+.btn-acc:hover{background:#f8d070;}
+.btn-ghost{background:transparent;border-color:var(--b1);color:var(--t3);}
+.btn-ghost:hover{color:var(--t1);border-color:var(--b2);}
+.pill-group{display:flex;background:var(--s3);border:1px solid var(--b1);border-radius:6px;padding:2px;gap:2px;}
+.pill-btn{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;color:var(--t3);border:none;background:transparent;transition:all 0.15s;}
+.pill-btn.active{background:var(--s4);color:var(--t1);}
+.sep{width:1px;height:22px;background:var(--b1);flex-shrink:0;}
+.label{font-size:10px;color:var(--t3);white-space:nowrap;}
+
+/* ── MAIN LAYOUT ── */
+.main{flex:1;display:flex;overflow:hidden;min-height:0;}
+.canvas-area{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0;}
+canvas{display:block;cursor:pointer;}
+
+/* ── SIDE PANEL ── */
+.panel{width:240px;flex-shrink:0;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto;}
+.psec{padding:14px;border-bottom:1px solid var(--b1);}
+.ptitle{font-family:'Unbounded',sans-serif;font-size:9px;font-weight:600;letter-spacing:1.5px;color:var(--t3);margin-bottom:10px;text-transform:uppercase;}
+.chord-big{text-align:center;padding:4px 0 8px;}
+.chord-big .name{font-family:'Unbounded',sans-serif;font-size:32px;font-weight:900;color:var(--acc);line-height:1;}
+.chord-big .notes{font-size:11px;color:var(--t3);margin-top:6px;letter-spacing:0.5px;}
+.chord-big .intervals{font-size:10px;color:var(--acc2);margin-top:3px;}
+
+/* audio controls */
+.audio-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.play-btn{
+  padding:8px 6px;border-radius:6px;font-weight:700;font-size:11px;
+  border:1px solid var(--b1);background:var(--s3);cursor:pointer;
+  color:var(--t1);transition:all 0.15s;text-align:center;
+}
+.play-btn:hover{border-color:var(--acc);color:var(--acc);}
+.play-btn.playing{border-color:var(--accg);color:var(--accg);animation:pulse 0.4s ease infinite alternate;}
+@keyframes pulse{from{opacity:1}to{opacity:0.6}}
+
+/* sound controls */
+.knob-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.knob-row label{font-size:10px;color:var(--t3);min-width:55px;}
+input[type=range]{flex:1;accent-color:var(--acc);height:3px;}
+.knob-val{font-size:10px;color:var(--t2);min-width:28px;text-align:right;}
+
+/* position badges */
+.pos-badges{display:flex;flex-wrap:wrap;gap:4px;}
+.pbadge{
+  padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;
+  border:1px solid var(--b1);color:var(--t3);background:var(--s3);transition:all 0.15s;
+}
+.pbadge:hover{border-color:var(--acc2);color:var(--acc2);}
+.pbadge.active{border-color:var(--acc2);color:var(--acc2);}
+
+/* progression */
+.prog-row{display:flex;flex-wrap:wrap;gap:5px;min-height:32px;margin-bottom:8px;}
+.prog-chip{
+  padding:4px 10px;background:var(--s3);border:1px solid var(--b1);
+  border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;gap:5px;
+}
+.prog-chip:hover{border-color:var(--accr);}
+.prog-chip .x{font-size:9px;color:var(--t3);}
+.prog-empty{color:var(--t3);font-size:10px;font-style:italic;padding:6px 0;}
+.prog-preset{
+  padding:6px 10px;background:var(--s3);border:1px solid var(--b1);
+  border-radius:6px;font-size:11px;cursor:pointer;transition:all 0.15s;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;
+}
+.prog-preset:hover{border-color:var(--acc);}
+.prog-preset .pl{font-weight:700;color:var(--t1);}
+.prog-preset .pc{color:var(--t3);font-size:10px;}
+.prog-btns{display:flex;gap:5px;margin-bottom:10px;}
+.prog-btns button{flex:1;padding:5px 6px;font-size:10px;}
+
+/* status */
+.statusbar{background:var(--s1);border-top:1px solid var(--b1);padding:5px 20px;display:flex;gap:16px;align-items:center;flex-shrink:0;font-size:10px;color:var(--t3);}
+.statusbar span{color:var(--t2);}
+
+/* fret number row */
+.fret-nums{display:flex;margin-left:40px;margin-top:3px;}
+.fn{font-size:9px;color:var(--t3);text-align:center;flex-shrink:0;}
+
+/* uke tuning toggle */
+.uke-tune{display:flex;gap:4px;align-items:center;}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav>
+  <div class="app-title">music<span>mate</span></div>
+  <div class="inst-tabs">
+    <button class="inst-tab active" id="tab-guitar" onclick="switchInstrument('guitar')">
+      <span class="icon">🎸</span> Guitar
+    </button>
+    <button class="inst-tab" id="tab-ukulele" onclick="switchInstrument('ukulele')">
+      <span class="icon">🪕</span> Ukulele
+    </button>
+    <button class="inst-tab" id="tab-piano" onclick="switchInstrument('piano')">
+      <span class="icon">🎹</span> Piano
+    </button>
+  </div>
+  <div class="nav-right">
+    <div class="pill-group">
+      <button class="pill-btn active" id="modeExplore" onclick="setMode('explore')">explore</button>
+      <button class="pill-btn" id="modeDetect" onclick="setMode('detect')">detect</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TOOLBAR -->
+<div class="toolbar" id="toolbar">
+  <span class="label">root</span>
+  <select id="rootSel" onchange="onChordChange()">
+    <option>C</option><option>C#</option><option>D</option><option>D#</option>
+    <option>E</option><option>F</option><option>F#</option><option>G</option>
+    <option>G#</option><option>A</option><option>A#</option><option>B</option>
+  </select>
+  <select id="typeSel" onchange="onChordChange()">
+    <option value="major">Major</option><option value="minor">Minor</option>
+    <option value="7">Dom 7th</option><option value="maj7">Maj 7th</option>
+    <option value="m7">Min 7th</option><option value="sus2">Sus2</option>
+    <option value="sus4">Sus4</option><option value="dim">Diminished</option>
+    <option value="aug">Augmented</option><option value="add9">Add9</option>
+  </select>
+  <div class="sep"></div>
+
+  <!-- Guitar/Uke position tabs -->
+  <div class="pill-group" id="posTabs"></div>
+  <div class="sep" id="sepPos"></div>
+
+  <!-- Scale overlay (guitar/uke only) -->
+  <select id="scaleSel" onchange="onScaleChange()">
+    <option value="">no scale</option>
+    <option value="major">Major</option><option value="minor">Nat. Minor</option>
+    <option value="pentatonic">Pentatonic</option><option value="blues">Blues</option>
+    <option value="dorian">Dorian</option><option value="mixolydian">Mixolydian</option>
+  </select>
+  <div class="sep" id="sepScale"></div>
+
+  <!-- Sound type -->
+  <span class="label">sound</span>
+  <div class="pill-group">
+    <button class="pill-btn active" id="sndAcoustic" onclick="setSoundType('acoustic')">acoustic</button>
+    <button class="pill-btn" id="sndElectric" onclick="setSoundType('electric')">electric</button>
+  </div>
+
+  <!-- Uke tuning (hidden by default) -->
+  <div id="ukeTuningWrap" style="display:none;gap:4px;align-items:center;" class="uke-tune">
+    <div class="sep"></div>
+    <span class="label">tuning</span>
+    <div class="pill-group">
+      <button class="pill-btn active" id="ukeHigh" onclick="setUkeTuning('high')">high-G</button>
+      <button class="pill-btn" id="ukeLow" onclick="setUkeTuning('low')">low-G</button>
+    </div>
+  </div>
+
+  <!-- Piano octave range (hidden by default) -->
+  <div id="pianoOctaveWrap" style="display:none;gap:4px;align-items:center;">
+    <div class="sep"></div>
+    <span class="label">octaves</span>
+    <div class="pill-group">
+      <button class="pill-btn" id="oct2" onclick="setPianoOctaves(2)">2</button>
+      <button class="pill-btn active" id="oct3" onclick="setPianoOctaves(3)">3</button>
+      <button class="pill-btn" id="oct4" onclick="setPianoOctaves(4)">4</button>
+    </div>
+  </div>
+
+  <button class="btn-ghost" onclick="clearBoard()" style="margin-left:auto;">clear</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="canvas-area" id="canvasArea">
+    <!-- String labels + canvas for guitar/uke -->
+    <div id="stringedWrap" style="display:flex;gap:0;align-items:flex-start;">
+      <div id="stringLabels" style="display:flex;flex-direction:column;width:40px;flex-shrink:0;"></div>
+      <div>
+        <canvas id="fretCanvas"></canvas>
+        <div class="fret-nums" id="fretNums"></div>
+      </div>
+    </div>
+    <!-- Piano canvas -->
+    <canvas id="pianoCanvas" style="display:none;"></canvas>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="panel">
+    <div class="psec">
+      <div class="ptitle">chord</div>
+      <div class="chord-big">
+        <div class="name" id="chordName">—</div>
+        <div class="notes" id="chordNotes">select a chord</div>
+        <div class="intervals" id="chordIntervals"></div>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="ptitle">play</div>
+      <div class="audio-grid">
+        <button class="play-btn" id="btnStrum" onclick="playSound('strum')">▶ strum</button>
+        <button class="play-btn" id="btnArp" onclick="playSound('arp')">♩ arpeggio</button>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="ptitle">sound shaping</div>
+      <div class="knob-row">
+        <label>reverb</label>
+        <input type="range" id="reverbAmt" min="0" max="100" value="30" oninput="updateFX()"/>
+        <span class="knob-val" id="reverbVal">30%</span>
+      </div>
+      <div class="knob-row">
+        <label>sustain</label>
+        <input type="range" id="sustainAmt" min="0" max="100" value="50" oninput="updateFX()"/>
+        <span class="knob-val" id="sustainVal">50%</span>
+      </div>
+      <div class="knob-row">
+        <label>volume</label>
+        <input type="range" id="volumeAmt" min="0" max="100" value="70" oninput="updateFX()"/>
+        <span class="knob-val" id="volumeVal">70%</span>
+      </div>
+    </div>
+
+    <div class="psec" id="posPanel">
+      <div class="ptitle">positions on neck</div>
+      <div class="pos-badges" id="posBadges">—</div>
+    </div>
+
+    <div class="psec">
+      <div class="ptitle">progression</div>
+      <div class="prog-row" id="progRow"><div class="prog-empty" id="progEmpty">add chords below →</div></div>
+      <div class="prog-btns">
+        <button onclick="addToProg()">+ add</button>
+        <button class="play-btn" id="btnPlayProg" onclick="playProgression()" style="padding:5px 6px;font-size:10px;">▶ play</button>
+        <button class="btn-ghost" onclick="clearProg()">clear</button>
+      </div>
+      <div class="ptitle" style="margin-top:6px;">common progressions</div>
+      <div id="progPresets"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div>instrument: <span id="stInst">Guitar</span></div>
+  <div>mode: <span id="stMode">explore</span></div>
+  <div>chord: <span id="stChord">—</span></div>
+  <div>sound: <span id="stSound">acoustic</span></div>
+  <div>active notes: <span id="stNotes">0</span></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// MUSIC THEORY
+// ═══════════════════════════════════════════════════
+const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CHORD_INTERVALS = {
+  major:[0,4,7], minor:[0,3,7], '7':[0,4,7,10], maj7:[0,4,7,11],
+  m7:[0,3,7,10], sus2:[0,2,7], sus4:[0,5,7], dim:[0,3,6], aug:[0,4,8], add9:[0,4,7,14]
+};
+const CHORD_SUFFIX = {major:'',minor:'m','7':'7',maj7:'maj7',m7:'m7',sus2:'sus2',sus4:'sus4',dim:'°',aug:'+',add9:'add9'};
+const INTERVAL_NAMES = {0:'R',2:'2',3:'b3',4:'3',5:'4',6:'b5',7:'5',8:'#5',9:'6',10:'b7',11:'7',14:'9'};
+const SCALE_INTERVALS = {
+  major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],pentatonic:[0,2,4,7,9],
+  blues:[0,3,5,6,7,10],dorian:[0,2,3,5,7,9,10],mixolydian:[0,2,4,5,7,9,10]
+};
+const PROGRESSIONS = {
+  'I – IV – V':{types:['major','major','major'],degrees:[0,5,7]},
+  'I – V – vi – IV':{types:['major','major','minor','major'],degrees:[0,7,9,5]},
+  'ii – V – I':{types:['minor','7','major'],degrees:[2,7,0]},
+  'I – vi – IV – V':{types:['major','minor','major','major'],degrees:[0,9,5,7]},
+};
+
+// ═══════════════════════════════════════════════════
+// INSTRUMENT CONFIGS
+// ═══════════════════════════════════════════════════
+const INSTRUMENTS = {
+  guitar:{
+    name:'Guitar', strings:6, frets:24,
+    open:[40,45,50,55,59,64], // E2 A2 D3 G3 B3 E4
+    names:['E','A','D','G','B','e'],
+    colors:{bg:'#2b1f0e',nut:'#c8b89a',fret:'#6a6050',fretAccent:'#b0a080',dot:'#4a3f2f',str:'#c8b890'},
+    fretWidth:52, strHeight:36, headW:40, topPad:18, botPad:18,
+  },
+  ukulele:{
+    name:'Ukulele', strings:4, frets:15,
+    open:[55,60,64,69], // G4 C4 E4 A4 (high-G)
+    openLow:[43,60,64,69], // Low-G variant
+    names:['G','C','E','A'],
+    colors:{bg:'#3a2010',nut:'#d4c09a',fret:'#7a6850',fretAccent:'#c0a870',dot:'#5a4030',str:'#d4c090'},
+    fretWidth:58, strHeight:38, headW:40, topPad:18, botPad:18,
+  },
+  piano:{
+    name:'Piano',
+    octaves:3, startOctave:3,
+  }
+};
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let instrument = 'guitar';
+let appMode = 'explore';
+let currentRoot = 'C';
+let currentType = 'major';
+let currentPosIdx = 0;
+let soundType = 'acoustic';
+let ukeTuning = 'high';
+let pianoOctaves = 3;
+let scaleOverlay = '';
+let reverbAmount = 0.30;
+let sustainAmount = 0.50;
+let volumeAmount = 0.70;
+let progression = [];
+
+// Per-instrument note state
+let activeNotes = {}; // stringIdx -> {fret, isChordTone}
+let mutedStrings = {};
+let pianoActiveKeys = new Set(); // MIDI note numbers
+let detectedVoicings = [];
+
+// ═══════════════════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════════════════
+let audioCtx = null;
+let reverbNode = null;
+let masterGain = null;
+let convBuffer = null;
+
+function getAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.connect(audioCtx.destination);
+    buildReverb();
+  }
+  return audioCtx;
+}
+
+async function buildReverb() {
+  const ac = audioCtx;
+  const len = ac.sampleRate * 3;
+  const buf = ac.createBuffer(2, len, ac.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+  }
+  convBuffer = buf;
+  reverbNode = ac.createConvolver();
+  reverbNode.buffer = buf;
+  reverbNode.connect(masterGain);
+}
+
+function updateFX() {
+  reverbAmount = document.getElementById('reverbAmt').value / 100;
+  sustainAmount = document.getElementById('sustainAmt').value / 100;
+  volumeAmount = document.getElementById('volumeAmt').value / 100;
+  document.getElementById('reverbVal').textContent = Math.round(reverbAmount*100)+'%';
+  document.getElementById('sustainVal').textContent = Math.round(sustainAmount*100)+'%';
+  document.getElementById('volumeVal').textContent = Math.round(volumeAmount*100)+'%';
+  if (masterGain) masterGain.gain.setTargetAtTime(volumeAmount, audioCtx.currentTime, 0.01);
+}
+
+function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+function playNote(midiNote, startDelay = 0, isLast = false) {
+  const ac = getAudio();
+  if (!masterGain) { masterGain = ac.createGain(); masterGain.connect(ac.destination); }
+  masterGain.gain.setTargetAtTime(volumeAmount, ac.currentTime, 0.01);
+
+  const freq = midiToFreq(midiNote);
+  const t = ac.currentTime + startDelay;
+  const baseDur = 0.8 + sustainAmount * 2.5; // 0.8 – 3.3s
+
+  const osc1 = ac.createOscillator();
+  const osc2 = ac.createOscillator();
+  const gain = ac.createGain();
+  const filter = ac.createBiquadFilter();
+
+  if (soundType === 'acoustic') {
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+    osc2.frequency.value = freq * 2.01;
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(3000, t);
+    filter.frequency.exponentialRampToValueAtTime(800, t + baseDur * 0.6);
+    filter.Q.value = 1.2;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.22, t + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + baseDur);
+  } else {
+    // Electric: more sustain, brighter, slight overdrive character
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+    osc2.frequency.value = freq * 1.003;
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(5000, t);
+    filter.frequency.exponentialRampToValueAtTime(2000, t + baseDur);
+    filter.Q.value = 3;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.003);
+    gain.gain.setValueAtTime(0.16, t + baseDur * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + baseDur * 1.4);
+  }
+
+  // Piano: entirely different - bell-like
+  if (instrument === 'piano') {
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 2;
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(8000, t);
+    filter.frequency.exponentialRampToValueAtTime(1000, t + baseDur * 0.5);
+    filter.Q.value = 0.5;
+    const dur = baseDur * 1.2;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.28, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  }
+
+  osc1.frequency.value = freq;
+  const osc2Gain = ac.createGain();
+  osc2Gain.gain.value = 0.3;
+
+  osc1.connect(filter); osc2.connect(osc2Gain); osc2Gain.connect(filter);
+  filter.connect(gain);
+
+  // Reverb mix
+  if (reverbAmount > 0.01 && reverbNode) {
+    const dryGain = ac.createGain();
+    const wetGain = ac.createGain();
+    dryGain.gain.value = 1 - reverbAmount * 0.5;
+    wetGain.gain.value = reverbAmount * 0.6;
+    gain.connect(dryGain); dryGain.connect(masterGain);
+    gain.connect(reverbNode); reverbNode.connect(wetGain); wetGain.connect(masterGain);
+  } else {
+    gain.connect(masterGain);
+  }
+
+  osc1.start(t); osc2.start(t);
+  osc1.stop(t + baseDur + 0.5);
+  osc2.stop(t + baseDur + 0.5);
+}
+
+function playSound(mode) {
+  getAudio();
+  let notes = [];
+
+  if (instrument === 'piano') {
+    notes = [...pianoActiveKeys].sort((a,b)=>a-b);
+  } else {
+    const cfg = INSTRUMENTS[instrument];
+    const tuning = instrument === 'ukulele' && ukeTuning === 'low' ? cfg.openLow : cfg.open;
+    for (let s = 0; s < cfg.strings; s++) {
+      if (mutedStrings[s]) continue;
+      const n = activeNotes[s];
+      if (!n || n.fret === undefined) continue;
+      notes.push(tuning[s] + n.fret);
+    }
+    notes.sort((a,b)=>a-b);
+  }
+
+  if (!notes.length) return;
+  const btn = document.getElementById(mode === 'strum' ? 'btnStrum' : 'btnArp');
+  btn.classList.add('playing');
+  setTimeout(()=>btn.classList.remove('playing'), 1500);
+
+  if (mode === 'strum') {
+    notes.forEach((m,i) => playNote(m, i * 0.025));
+  } else {
+    notes.forEach((m,i) => playNote(m, i * 0.14));
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// VOICING ENGINE (string instruments)
+// ═══════════════════════════════════════════════════
+function range(a,b){const r=[];for(let i=a;i<b;i++)r.push(i);return r;}
+
+function getVoicings(root, type, inst) {
+  const cfg = INSTRUMENTS[inst];
+  const tuning = inst === 'ukulele' && ukeTuning === 'low' ? cfg.openLow : cfg.open;
+  const rootIdx = NOTES.indexOf(root);
+  const intervals = CHORD_INTERVALS[type] || [0,4,7];
+  const chordPCs = intervals.map(i => (rootIdx + i) % 12);
+  const maxFrets = cfg.frets;
+  const nStrings = cfg.strings;
+
+  const voicings = [];
+  const seen = new Set();
+
+  for (let winStart = 0; winStart <= maxFrets - 4; winStart++) {
+    const winEnd = winStart + 4;
+    const v = findVoicingInWindow(rootIdx, chordPCs, winStart, winEnd, tuning, nStrings);
+    if (!v) continue;
+    const key = v.join(',');
+    const activeFrets = v.filter(f=>f>=0);
+    if (activeFrets.length < Math.min(3, nStrings)) continue;
+    const span = activeFrets.filter(f=>f>0).length ?
+      Math.max(...activeFrets.filter(f=>f>0)) - Math.min(...activeFrets.filter(f=>f>0)) : 0;
+    if (span > 5) continue;
+    const uniquePC = new Set(v.filter(f=>f>=0).map((f,s)=>(tuning[s]+f)%12));
+    const cov = chordPCs.filter(pc=>uniquePC.has(pc)).length;
+    if (cov < Math.min(2, chordPCs.length)) continue;
+    if (!seen.has(key)) { seen.add(key); voicings.push(v); }
+  }
+
+  // Deduplicate by neck region
+  const out = [];
+  const usedRegions = new Set();
+  for (const v of voicings) {
+    const activeFrets = v.filter(f=>f>0);
+    const minF = activeFrets.length ? Math.min(...activeFrets) : 0;
+    const region = Math.floor(minF / 3);
+    if (!usedRegions.has(region)) { usedRegions.add(region); out.push(v); }
+  }
+  return out.length ? out : [fallback(rootIdx, chordPCs, 0, tuning, nStrings)];
+}
+
+function findVoicingInWindow(rootIdx, chordPCs, wS, wE, tuning, nStrings) {
+  const v = [];
+  for (let s = 0; s < nStrings; s++) {
+    let best = -1, bestScore = -1;
+    const trials = wS === 0 ? [0, ...range(1, wE+1)] : range(wS, wE+1);
+    for (const f of trials) {
+      const pc = (tuning[s] + f) % 12;
+      if (!chordPCs.includes(pc)) continue;
+      const isRoot = pc === (rootIdx % 12);
+      const score = (isRoot && s <= 1 ? 10 : 0) + (f===0?2:0) + (isRoot?3:0);
+      if (score > bestScore) { bestScore = score; best = f; }
+    }
+    v.push(best);
+  }
+  return v.filter(f=>f>=0).length >= Math.min(3,nStrings) ? v : null;
+}
+
+function fallback(rootIdx, chordPCs, start, tuning, nStrings) {
+  return tuning.map((open,s) => {
+    for (let f=start;f<=start+5;f++) if(chordPCs.includes((open+f)%12)) return f;
+    return -1;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PIANO CHORD ENGINE
+// ═══════════════════════════════════════════════════
+// posIdx: 0=root pos oct3, 1=1st inv, 2=2nd inv, 3=3rd inv, 4=root pos oct4, 5=root pos oct5
+function getPianoChordNotes(root, type, startOct, posIdx) {
+  posIdx = posIdx || 0;
+  const rootIdx = NOTES.indexOf(root);
+  const intervals = (CHORD_INTERVALS[type] || [0,4,7]).filter(i => i < 12); // no 9ths for inversions
+  const n = intervals.length;
+
+  // Octave shift for positions beyond inversions
+  const octaveShift = Math.floor(posIdx / n);
+  const inv = posIdx % n;
+
+  // Build root-position notes starting from a base octave
+  const baseOct = startOct + 1 + octaveShift;
+  const baseMidi = 12 * baseOct + rootIdx;
+  let notes = intervals.map(i => baseMidi + i);
+
+  // Apply inversion: rotate `inv` notes up by an octave
+  for (let i = 0; i < inv; i++) {
+    notes[i] += 12;
+  }
+  notes.sort((a,b) => a-b);
+  return notes;
+}
+
+// Generate label for each piano position
+function getPianoPositionLabel(posIdx, type) {
+  const intervals = (CHORD_INTERVALS[type] || [0,4,7]).filter(i => i < 12);
+  const n = intervals.length;
+  const inv = posIdx % n;
+  const octShift = Math.floor(posIdx / n);
+  const invLabels = ['root pos', '1st inv', '2nd inv', '3rd inv'];
+  const octLabels = ['', ' oct+1', ' oct+2'];
+  return (invLabels[inv] || `inv ${inv}`) + (octLabels[octShift] || ` oct+${octShift}`);
+}
+
+// ═══════════════════════════════════════════════════
+// FRETBOARD RENDERER
+// ═══════════════════════════════════════════════════
+const fretCanvas = document.getElementById('fretCanvas');
+const fCtx = fretCanvas.getContext('2d');
+
+function initFretboard() {
+  const cfg = INSTRUMENTS[instrument];
+  const W = cfg.headW + cfg.fretWidth * cfg.frets;
+  const H = cfg.topPad + cfg.strHeight * (cfg.strings - 1) + cfg.botPad;
+  fretCanvas.width = W;
+  fretCanvas.height = H;
+  fretCanvas.style.height = H + 'px';
+  buildFretNums();
+  buildStringLabels();
+  drawFretboard();
+}
+
+function buildFretNums() {
+  const cfg = INSTRUMENTS[instrument];
+  const el = document.getElementById('fretNums');
+  el.innerHTML = '';
+  el.style.marginLeft = cfg.headW + 'px';
+  const markers = [3,5,7,9,12,15,17,19,21,24];
+  for (let f=1; f<=cfg.frets; f++) {
+    const d = document.createElement('div');
+    d.className='fn'; d.style.width = cfg.fretWidth+'px';
+    d.textContent = markers.includes(f) ? f : '';
+    el.appendChild(d);
+  }
+}
+
+function buildStringLabels() {
+  const cfg = INSTRUMENTS[instrument];
+  const el = document.getElementById('stringLabels');
+  el.innerHTML = '';
+  el.style.paddingTop = cfg.topPad + 'px';
+  for (let s=cfg.strings-1; s>=0; s--) {
+    const d = document.createElement('div');
+    d.id = `sl-${s}`; d.style.height = cfg.strHeight+'px'; d.style.lineHeight = cfg.strHeight+'px';
+    d.style.textAlign='center'; d.style.fontSize='11px'; d.style.fontWeight='700';
+    d.style.cursor='pointer'; d.style.color='var(--t3)'; d.style.transition='color 0.15s';
+    d.textContent = cfg.names[s];
+    d.onclick = () => toggleMute(s);
+    el.appendChild(d);
+  }
+  updateStringLabelColors();
+}
+
+function updateStringLabelColors() {
+  const cfg = INSTRUMENTS[instrument];
+  for (let s=0; s<cfg.strings; s++) {
+    const el = document.getElementById(`sl-${s}`);
+    if (!el) continue;
+    el.style.color = mutedStrings[s] ? 'var(--accr)' : 'var(--t3)';
+  }
+}
+
+function drawFretboard() {
+  const cfg = INSTRUMENTS[instrument];
+  const c = cfg.colors;
+  const W = fretCanvas.width, H = fretCanvas.height;
+  fCtx.clearRect(0, 0, W, H);
+
+  // Fretboard body
+  fCtx.fillStyle = c.bg;
+  fCtx.fillRect(cfg.headW, 0, W - cfg.headW, H);
+
+  // Headstock
+  fCtx.fillStyle = '#12100a';
+  fCtx.fillRect(0, 0, cfg.headW, H);
+
+  // Nut
+  fCtx.fillStyle = c.nut;
+  fCtx.fillRect(cfg.headW - 5, 0, 5, H);
+
+  // Position dots
+  const dotFrets = [3,5,7,9,12,15,17,19,21,24].filter(f=>f<=cfg.frets);
+  for (const f of dotFrets) {
+    const x = cfg.headW + (f - 0.5) * cfg.fretWidth;
+    fCtx.fillStyle = c.dot;
+    if (f===12||f===24) {
+      fCtx.beginPath(); fCtx.arc(x, cfg.topPad + cfg.strHeight, 6, 0, Math.PI*2); fCtx.fill();
+      fCtx.beginPath(); fCtx.arc(x, cfg.topPad + cfg.strHeight * 3, 6, 0, Math.PI*2); fCtx.fill();
+    } else {
+      const midY = cfg.topPad + cfg.strHeight * (cfg.strings-1) / 2;
+      fCtx.beginPath(); fCtx.arc(x, midY, 6, 0, Math.PI*2); fCtx.fill();
+    }
+  }
+
+  // Fret lines
+  for (let f=0; f<=cfg.frets; f++) {
+    const x = cfg.headW + f * cfg.fretWidth;
+    const isAcc = f===0||f===12||f===24;
+    fCtx.strokeStyle = isAcc ? c.fretAccent : c.fret;
+    fCtx.lineWidth = isAcc ? 2.5 : 1;
+    fCtx.beginPath(); fCtx.moveTo(x,0); fCtx.lineTo(x,H); fCtx.stroke();
+  }
+
+  // Strings
+  for (let s=0; s<cfg.strings; s++) {
+    const y = cfg.topPad + (cfg.strings-1-s) * cfg.strHeight;
+    const thick = instrument==='ukulele' ? 0.6+(s/cfg.strings)*2 : 0.5+(s/cfg.strings)*3;
+    fCtx.strokeStyle = mutedStrings[s] ? 'rgba(200,184,154,0.15)' : `rgba(200,184,154,0.65)`;
+    fCtx.lineWidth = thick;
+    fCtx.beginPath(); fCtx.moveTo(cfg.headW, y); fCtx.lineTo(W, y); fCtx.stroke();
+  }
+
+  // Scale overlay
+  if (scaleOverlay) drawScaleOverlay(cfg);
+
+  // Active dots
+  drawActiveDots(cfg);
+
+  // Muted X
+  for (let s=0; s<cfg.strings; s++) {
+    if (!mutedStrings[s]) continue;
+    const y = cfg.topPad + (cfg.strings-1-s) * cfg.strHeight;
+    fCtx.fillStyle='var(--accr)'; fCtx.font='bold 13px Space Mono';
+    fCtx.textAlign='center'; fCtx.textBaseline='middle';
+    fCtx.fillText('×', cfg.headW/2, y);
+  }
+}
+
+function drawScaleOverlay(cfg) {
+  const tuning = instrument==='ukulele' && ukeTuning==='low' ? cfg.openLow : cfg.open;
+  const rootIdx = NOTES.indexOf(currentRoot);
+  const sInts = SCALE_INTERVALS[scaleOverlay] || [];
+  const scalePCs = sInts.map(i=>(rootIdx+i)%12);
+  for (let s=0; s<cfg.strings; s++) {
+    for (let f=0; f<=cfg.frets; f++) {
+      const pc = (tuning[s]+f)%12;
+      if (!scalePCs.includes(pc)) continue;
+      if (activeNotes[s] && activeNotes[s].fret===f) continue;
+      const x = f===0 ? cfg.headW/2 : cfg.headW+(f-0.5)*cfg.fretWidth;
+      const y = cfg.topPad+(cfg.strings-1-s)*cfg.strHeight;
+      const isRoot = pc===rootIdx%12;
+      fCtx.fillStyle = isRoot ? 'rgba(240,96,96,0.2)' : 'rgba(96,200,240,0.12)';
+      fCtx.beginPath(); fCtx.arc(x,y,8,0,Math.PI*2); fCtx.fill();
+      fCtx.strokeStyle = isRoot ? 'rgba(240,96,96,0.45)' : 'rgba(96,200,240,0.28)';
+      fCtx.lineWidth=1; fCtx.stroke();
+    }
+  }
+}
+
+function drawActiveDots(cfg) {
+  const tuning = instrument==='ukulele' && ukeTuning==='low' ? cfg.openLow : cfg.open;
+  const rootIdx = NOTES.indexOf(currentRoot);
+  for (let s=0; s<cfg.strings; s++) {
+    const n = activeNotes[s];
+    if (!n || n.fret===undefined) continue;
+    const f = n.fret; if (f<0) continue;
+    const x = f===0 ? cfg.headW/2 : cfg.headW+(f-0.5)*cfg.fretWidth;
+    const y = cfg.topPad+(cfg.strings-1-s)*cfg.strHeight;
+    const pc = (tuning[s]+f)%12;
+    const isRoot = pc===rootIdx%12;
+    const col = isRoot ? '#f06060' : (n.isChordTone ? '#60c8f0' : '#60f0a0');
+    const gCol = isRoot ? '240,96,96' : (n.isChordTone ? '96,200,240' : '96,240,160');
+    fCtx.shadowColor = `rgba(${gCol},0.7)`; fCtx.shadowBlur = 14;
+    fCtx.fillStyle = col;
+    fCtx.beginPath(); fCtx.arc(x,y,12,0,Math.PI*2); fCtx.fill();
+    fCtx.shadowBlur = 0;
+    fCtx.fillStyle='#0a0a0b'; fCtx.font='bold 9px Space Mono';
+    fCtx.textAlign='center'; fCtx.textBaseline='middle';
+    fCtx.fillText(NOTES[pc], x, y);
+  }
+}
+
+// Fretboard click
+fretCanvas.addEventListener('click', e => {
+  const cfg = INSTRUMENTS[instrument];
+  const rect = fretCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  let s = -1;
+  for (let i=0; i<cfg.strings; i++) {
+    const y = cfg.topPad + (cfg.strings-1-i)*cfg.strHeight;
+    if (Math.abs(my-y) < cfg.strHeight/2) { s=i; break; }
+  }
+  if (s<0) return;
+  const f = mx < cfg.headW ? 0 : Math.ceil((mx-cfg.headW)/cfg.fretWidth);
+  if (f<0||f>cfg.frets) return;
+
+  if (appMode==='detect') {
+    if (activeNotes[s] && activeNotes[s].fret===f) {
+      delete activeNotes[s];
+    } else {
+      const tuning = instrument==='ukulele' && ukeTuning==='low' ? cfg.openLow : cfg.open;
+      const pc = (tuning[s]+f)%12;
+      const rootIdx = NOTES.indexOf(currentRoot);
+      const chordPCs = (CHORD_INTERVALS[currentType]||[0,4,7]).map(i=>(rootIdx+i)%12);
+      activeNotes[s] = {fret:f, isChordTone:chordPCs.includes(pc)};
+      mutedStrings[s] = false;
+    }
+    updateStringLabelColors();
+    drawFretboard();
+    detectChord();
+    updateStatus();
+  } else {
+    playNote((instrument==='ukulele'&&ukeTuning==='low'?cfg.openLow:cfg.open)[s]+f, 0);
+  }
+});
+
+function toggleMute(s) {
+  mutedStrings[s] = !mutedStrings[s];
+  if (mutedStrings[s]) delete activeNotes[s];
+  updateStringLabelColors();
+  drawFretboard();
+  if (appMode==='detect') detectChord();
+}
+
+// ═══════════════════════════════════════════════════
+// PIANO RENDERER
+// ═══════════════════════════════════════════════════
+const pianoCanvas = document.getElementById('pianoCanvas');
+const pCtx = pianoCanvas.getContext('2d');
+
+const WHITE_KEYS_PER_OCT = 7;
+const BLACK_OFFSETS = [1,2,4,5,6]; // semitones that are black keys within octave
+const WHITE_ORDER = [0,2,4,5,7,9,11]; // C D E F G A B
+
+function initPiano() {
+  const totalWhite = pianoOctaves * WHITE_KEYS_PER_OCT + 1;
+  const W = Math.max(600, totalWhite * 38);
+  const H = 180;
+  pianoCanvas.width = W;
+  pianoCanvas.height = H;
+  pianoCanvas.style.width = '100%';
+  pianoCanvas.style.maxWidth = W+'px';
+  drawPiano();
+}
+
+function drawPiano() {
+  const cfg = INSTRUMENTS.piano;
+  const startOct = cfg.startOctave;
+  const totalWhite = pianoOctaves * WHITE_KEYS_PER_OCT + 1;
+  const W = pianoCanvas.width, H = pianoCanvas.height;
+  const wW = W / totalWhite, wH = H;
+  const bW = wW * 0.62, bH = wH * 0.62;
+
+  pCtx.clearRect(0, 0, W, H);
+
+  // White keys
+  let wi = 0;
+  for (let oct=0; oct<pianoOctaves; oct++) {
+    for (let ki=0; ki<7; ki++) {
+      const semi = WHITE_ORDER[ki];
+      const midi = 12*(startOct+1+oct) + semi;
+      const x = wi * wW;
+      const isActive = pianoActiveKeys.has(midi);
+      const isRoot = NOTES[semi % 12] === currentRoot && isActive;
+
+      pCtx.fillStyle = isRoot ? '#f8d070' : isActive ? '#60c8f0' : '#f5f0e8';
+      pCtx.fillRect(x+1, 0, wW-2, wH-1);
+      pCtx.strokeStyle = '#c8c0b0'; pCtx.lineWidth=1;
+      pCtx.strokeRect(x+1, 0, wW-2, wH-1);
+
+      // Glow for active
+      if (isActive) {
+        pCtx.shadowColor = isRoot ? 'rgba(240,192,96,0.8)' : 'rgba(96,200,240,0.7)';
+        pCtx.shadowBlur = 12;
+        pCtx.fillRect(x+1, 0, wW-2, wH-1);
+        pCtx.shadowBlur = 0;
+      }
+
+      // Note name
+      const pc = semi % 12;
+      pCtx.fillStyle = isActive ? '#0a0a0b' : '#888480';
+      pCtx.font = `bold ${Math.max(9,Math.floor(wW*0.28))}px Space Mono`;
+      pCtx.textAlign = 'center'; pCtx.textBaseline = 'bottom';
+      pCtx.fillText(NOTES[pc] + (startOct+oct+1), x + wW/2, wH - 4);
+      wi++;
+    }
+  }
+  // Last C
+  const lastMidi = 12*(startOct+1+pianoOctaves);
+  const isLast = pianoActiveKeys.has(lastMidi);
+  pCtx.fillStyle = isLast ? '#60c8f0' : '#f5f0e8';
+  pCtx.fillRect(wi*wW+1, 0, wW-2, wH-1);
+  pCtx.strokeStyle='#c8c0b0'; pCtx.lineWidth=1; pCtx.strokeRect(wi*wW+1,0,wW-2,wH-1);
+  pCtx.fillStyle = isLast ? '#0a0a0b' : '#888480';
+  pCtx.font = `bold ${Math.max(9,Math.floor(wW*0.28))}px Space Mono`;
+  pCtx.textAlign='center'; pCtx.textBaseline='bottom';
+  pCtx.fillText('C'+(startOct+pianoOctaves+1), wi*wW+wW/2, wH-4);
+
+  // Black keys (drawn on top)
+  wi = 0;
+  for (let oct=0; oct<pianoOctaves; oct++) {
+    for (let ki=0; ki<7; ki++) {
+      const semi = WHITE_ORDER[ki];
+      // Draw black key after this white if next semitone is black
+      const nextSemi = semi + 1;
+      const isBlackAfter = [1,3,6,8,10].includes(nextSemi % 12) && ki < 6;
+      if (isBlackAfter) {
+        const midi = 12*(startOct+1+oct) + nextSemi;
+        const x = (wi+1)*wW - bW/2;
+        const isActive = pianoActiveKeys.has(midi);
+        pCtx.fillStyle = isActive ? (NOTES[nextSemi%12]===currentRoot ? '#f0c060' : '#60c8f0') : '#1a1a1f';
+        pCtx.fillRect(x, 0, bW, bH);
+        if (isActive) {
+          pCtx.shadowColor='rgba(96,200,240,0.8)'; pCtx.shadowBlur=10;
+          pCtx.fillRect(x,0,bW,bH); pCtx.shadowBlur=0;
+          // Note name
+          pCtx.fillStyle='#f4f0e8'; pCtx.font=`bold ${Math.max(8,Math.floor(bW*0.38))}px Space Mono`;
+          pCtx.textAlign='center'; pCtx.textBaseline='bottom';
+          pCtx.fillText(NOTES[nextSemi%12], x+bW/2, bH-3);
+        }
+      }
+      wi++;
+    }
+  }
+}
+
+// Piano click
+pianoCanvas.addEventListener('click', e => {
+  if (appMode !== 'detect') return;
+  const cfg = INSTRUMENTS.piano;
+  const startOct = cfg.startOctave;
+  const totalWhite = pianoOctaves * WHITE_KEYS_PER_OCT + 1;
+  const rect = pianoCanvas.getBoundingClientRect();
+  const scaleX = pianoCanvas.width / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * (pianoCanvas.height / rect.height);
+  const wW = pianoCanvas.width / totalWhite;
+  const bW = wW * 0.62, bH = pianoCanvas.height * 0.62;
+
+  // Check black keys first
+  let hit = null;
+  let wi = 0;
+  for (let oct=0; oct<pianoOctaves; oct++) {
+    for (let ki=0; ki<7; ki++) {
+      const semi = WHITE_ORDER[ki];
+      const nextSemi = semi + 1;
+      const isBlackAfter = [1,3,6,8,10].includes(nextSemi%12) && ki<6;
+      if (isBlackAfter) {
+        const x = (wi+1)*wW - bW/2;
+        if (mx>=x && mx<=x+bW && my<=bH) {
+          hit = 12*(startOct+1+oct)+nextSemi; break;
+        }
+      }
+      wi++;
+    }
+    if (hit) break;
+  }
+
+  // Check white keys
+  if (!hit) {
+    wi = 0;
+    outer: for (let oct=0; oct<pianoOctaves; oct++) {
+      for (let ki=0; ki<7; ki++) {
+        const x = wi*wW;
+        if (mx>=x && mx<=x+wW) {
+          hit = 12*(startOct+1+oct)+WHITE_ORDER[ki]; break outer;
+        }
+        wi++;
+      }
+    }
+    if (!hit && mx >= wi*wW) hit = 12*(startOct+1+pianoOctaves);
+  }
+
+  if (hit) {
+    if (pianoActiveKeys.has(hit)) pianoActiveKeys.delete(hit);
+    else { pianoActiveKeys.add(hit); playNote(hit,0); }
+    drawPiano();
+    detectPianoChord();
+    updateStatus();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// CHORD APPLY & DETECT
+// ═══════════════════════════════════════════════════
+function applyChord(posIdx) {
+  if (instrument === 'piano') {
+    applyPianoChord(posIdx);
+    updatePositionsPanel(null);
+    return;
+  }
+  const voicings = getVoicings(currentRoot, currentType, instrument);
+  const rootIdx = NOTES.indexOf(currentRoot);
+  const chordPCs = (CHORD_INTERVALS[currentType]||[0,4,7]).map(i=>(rootIdx+i)%12);
+  const cfg = INSTRUMENTS[instrument];
+  const tuning = instrument==='ukulele'&&ukeTuning==='low' ? cfg.openLow : cfg.open;
+
+  activeNotes = {};
+  mutedStrings = {};
+
+  const v = posIdx === 99
+    ? voicings[0]
+    : (voicings[posIdx] || voicings[posIdx % voicings.length] || voicings[0] || []);
+
+  if (posIdx === 99) {
+    // All positions: use first voicing
+    for (let s=0; s<cfg.strings; s++) {
+      if (!v || v[s]===undefined||v[s]<0) { mutedStrings[s]=true; continue; }
+      const pc=(tuning[s]+v[s])%12;
+      activeNotes[s]={fret:v[s],isChordTone:chordPCs.includes(pc)};
+    }
+  } else {
+    for (let s=0; s<cfg.strings; s++) {
+      if (!v || v[s]===undefined||v[s]<0) { mutedStrings[s]=true; continue; }
+      const pc=(tuning[s]+v[s])%12;
+      activeNotes[s]={fret:v[s],isChordTone:chordPCs.includes(pc)};
+    }
+    // Auto-scroll
+    if (v) {
+      const af = v.filter(f=>f>1);
+      const area = document.getElementById('canvasArea');
+      if (af.length) area.scrollLeft = Math.max(0,(Math.min(...af)-2)*cfg.fretWidth+cfg.headW-80);
+      else area.scrollLeft = 0;
+    }
+  }
+
+  detectedVoicings = voicings;
+  updateStringLabelColors();
+  drawFretboard();
+  updateChordPanel();
+  updatePositionsPanel(voicings);
+  updateStatus();
+}
+
+function applyPianoChord(posIdx) {
+  posIdx = posIdx || 0;
+  const cfg = INSTRUMENTS.piano;
+  pianoActiveKeys.clear();
+  const notes = getPianoChordNotes(currentRoot, currentType, cfg.startOctave, posIdx);
+  notes.forEach(m => pianoActiveKeys.add(m));
+  // Scroll piano canvas to show the active keys
+  const lowestNote = Math.min(...notes);
+  const startOct = cfg.startOctave;
+  const lowestOct = Math.floor((lowestNote - 12) / 12) - startOct;
+  const area = document.getElementById('canvasArea');
+  if (area) {
+    const totalWhite = pianoOctaves * 7 + 1;
+    const wW = pianoCanvas.width / totalWhite;
+    area.scrollLeft = Math.max(0, lowestOct * 7 * wW - 40);
+  }
+  drawPiano();
+  updateChordPanel();
+  updateStatus();
+}
+
+function detectChord() {
+  const cfg = INSTRUMENTS[instrument];
+  const tuning = instrument==='ukulele'&&ukeTuning==='low' ? cfg.openLow : cfg.open;
+  const midiSet = new Set();
+  for (let s=0; s<cfg.strings; s++) {
+    if (mutedStrings[s]) continue;
+    const n=activeNotes[s]; if (!n||n.fret===undefined) continue;
+    midiSet.add((tuning[s]+n.fret)%12);
+  }
+  matchChord(midiSet);
+}
+
+function detectPianoChord() {
+  const midiSet = new Set([...pianoActiveKeys].map(m=>m%12));
+  matchChord(midiSet);
+}
+
+function matchChord(midiSet) {
+  if (midiSet.size < 2) {
+    document.getElementById('chordName').textContent='—';
+    document.getElementById('chordNotes').textContent='need 2+ notes';
+    document.getElementById('chordIntervals').textContent='';
+    return;
+  }
+  for (const root of NOTES) {
+    const ri = NOTES.indexOf(root);
+    for (const [type, ints] of Object.entries(CHORD_INTERVALS)) {
+      const chordSet = new Set(ints.map(i=>(ri+i)%12));
+      if ([...midiSet].every(n=>chordSet.has(n)) && midiSet.has(ri)) {
+        const suffix = CHORD_SUFFIX[type]||type;
+        document.getElementById('chordName').textContent = root+suffix;
+        document.getElementById('chordNotes').textContent = [...midiSet].map(n=>NOTES[n]).join(' – ');
+        document.getElementById('chordIntervals').textContent = ints.map(i=>INTERVAL_NAMES[i]||i).join(' ');
+        return;
+      }
+    }
+  }
+  document.getElementById('chordName').textContent='?';
+  document.getElementById('chordNotes').textContent = [...midiSet].map(n=>NOTES[n]).join(' – ');
+  document.getElementById('chordIntervals').textContent='unknown voicing';
+}
+
+function updateChordPanel() {
+  const rootIdx = NOTES.indexOf(currentRoot);
+  const ints = CHORD_INTERVALS[currentType]||[0,4,7];
+  const suffix = CHORD_SUFFIX[currentType]||currentType;
+  document.getElementById('chordName').textContent = currentRoot+suffix;
+  document.getElementById('chordNotes').textContent = ints.map(i=>NOTES[(rootIdx+i)%12]).join(' – ');
+  document.getElementById('chordIntervals').textContent = ints.map(i=>INTERVAL_NAMES[i]||i).join(' ');
+}
+
+// ═══════════════════════════════════════════════════
+// POSITIONS PANEL
+// ═══════════════════════════════════════════════════
+function updatePositionsPanel(voicings) {
+  const posPanel = document.getElementById('posPanel');
+  posPanel.style.display = '';
+  const el = document.getElementById('posBadges');
+  el.innerHTML='';
+  const tabsEl = document.getElementById('posTabs');
+  tabsEl.innerHTML='';
+  tabsEl.style.display = '';
+  document.getElementById('sepPos').style.display = '';
+
+  if (instrument === 'piano') {
+    // Piano positions: inversions + octave shifts (6 total)
+    const intervals = (CHORD_INTERVALS[currentType]||[0,4,7]).filter(i=>i<12);
+    const n = intervals.length;
+    const totalPositions = n * 2; // inversions across 2 octaves
+    for (let i=0; i<totalPositions; i++) {
+      const lbl = getPianoPositionLabel(i, currentType);
+      // Tab
+      const btn = document.createElement('button');
+      btn.className='pill-btn'+(i===currentPosIdx?' active':'');
+      btn.textContent = lbl;
+      const ci=i;
+      btn.onclick=()=>{ currentPosIdx=ci; setActiveTab(tabsEl,ci); setActiveBadge(el,ci); applyChord(ci); };
+      tabsEl.appendChild(btn);
+      // Badge
+      const b = document.createElement('span');
+      b.className='pbadge'+(i===currentPosIdx?' active':'');
+      b.textContent = lbl;
+      b.onclick=()=>{ currentPosIdx=ci; setActiveBadge(el,ci); setActiveTab(tabsEl,ci); applyChord(ci); };
+      el.appendChild(b);
+    }
+    return;
+  }
+
+  // String instruments
+  const num = Math.min(voicings.length, 6);
+  for (let i=0; i<num; i++) {
+    const af = voicings[i].filter(f=>f>0);
+    const minF = af.length ? Math.min(...af) : 0;
+    const btn = document.createElement('button');
+    btn.className='pill-btn'+(i===currentPosIdx?' active':'');
+    btn.textContent='pos '+(i+1);
+    const ci=i;
+    btn.onclick=()=>{ currentPosIdx=ci; setActiveTab(tabsEl,ci); setActiveBadge(el,ci); applyChord(ci); };
+    tabsEl.appendChild(btn);
+    const b = document.createElement('span');
+    b.className='pbadge'+(i===currentPosIdx?' active':'');
+    b.textContent=`pos ${i+1}  fr.${minF||'open'}`;
+    b.onclick=()=>{ currentPosIdx=ci; setActiveBadge(el,ci); setActiveTab(tabsEl,ci); applyChord(ci); };
+    el.appendChild(b);
+  }
+  // All tab
+  const allBtn = document.createElement('button');
+  allBtn.className='pill-btn'+(currentPosIdx===99?' active':'');
+  allBtn.textContent='all';
+  allBtn.onclick=()=>{ currentPosIdx=99; setActiveTab(tabsEl,99); applyChord(99); };
+  tabsEl.appendChild(allBtn);
+}
+
+function setActiveTab(container, idx) {
+  const tabs=[...container.querySelectorAll('.pill-btn')];
+  tabs.forEach((t,i)=>t.classList.toggle('active', idx===99 ? i===tabs.length-1 : i===idx));
+}
+function setActiveBadge(container, idx) {
+  [...container.querySelectorAll('.pbadge')].forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+
+// ═══════════════════════════════════════════════════
+// PROGRESSION
+// ═══════════════════════════════════════════════════
+function addToProg() {
+  const suffix = CHORD_SUFFIX[currentType]||currentType;
+  progression.push({root:currentRoot,type:currentType,label:currentRoot+suffix});
+  renderProg();
+}
+function clearProg() { progression=[]; renderProg(); }
+function removeFromProg(i) { progression.splice(i,1); renderProg(); }
+function renderProg() {
+  const el=document.getElementById('progRow');
+  el.innerHTML='';
+  if (!progression.length) {
+    el.innerHTML='<div class="prog-empty">add chords →</div>'; return;
+  }
+  progression.forEach((ch,i)=>{
+    const d=document.createElement('div'); d.className='prog-chip';
+    d.innerHTML=`${ch.label} <span class="x" onclick="removeFromProg(${i})">✕</span>`;
+    d.onclick=e=>{if(e.target.className==='x')return; loadProgChord(ch);};
+    el.appendChild(d);
+  });
+}
+function loadProgChord(ch) {
+  currentRoot=ch.root; currentType=ch.type;
+  document.getElementById('rootSel').value=ch.root;
+  document.getElementById('typeSel').value=ch.type;
+  applyChord(0); buildProgPresets();
+}
+async function playProgression() {
+  if (!progression.length) return;
+  const btn=document.getElementById('btnPlayProg');
+  btn.classList.add('playing');
+  for (const ch of progression) {
+    loadProgChord(ch);
+    await new Promise(r=>setTimeout(r,50));
+    playSound('strum');
+    await new Promise(r=>setTimeout(r,1800));
+  }
+  btn.classList.remove('playing');
+}
+function buildProgPresets() {
+  const el=document.getElementById('progPresets'); el.innerHTML='';
+  for (const [name,data] of Object.entries(PROGRESSIONS)) {
+    const rootIdx=NOTES.indexOf(currentRoot);
+    const labels=data.degrees.map((d,i)=>{
+      const r=NOTES[(rootIdx+d)%12]; const t=data.types[i];
+      return r+(CHORD_SUFFIX[t]||t);
+    }).join(' – ');
+    const row=document.createElement('div'); row.className='prog-preset';
+    row.innerHTML=`<span class="pl">${name}</span><span class="pc">${labels}</span>`;
+    row.onclick=()=>{
+      progression=data.degrees.map((d,i)=>{
+        const r=NOTES[(rootIdx+d)%12]; const t=data.types[i];
+        return {root:r,type:t,label:r+(CHORD_SUFFIX[t]||t)};
+      });
+      renderProg();
+    };
+    el.appendChild(row);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// INSTRUMENT / MODE SWITCHING
+// ═══════════════════════════════════════════════════
+function switchInstrument(inst) {
+  instrument = inst;
+  // Update nav tabs
+  ['guitar','ukulele','piano'].forEach(i=>{
+    document.getElementById(`tab-${i}`).classList.toggle('active',i===inst);
+  });
+  // Show/hide canvases
+  const sw = document.getElementById('stringedWrap');
+  const pc = document.getElementById('pianoCanvas');
+  sw.style.display = inst==='piano' ? 'none' : 'flex';
+  pc.style.display = inst==='piano' ? 'block' : 'none';
+
+  // Show/hide toolbar items
+  document.getElementById('scaleSel').style.display = inst==='piano'?'none':'';
+  document.getElementById('sepScale').style.display = inst==='piano'?'none':'';
+  document.getElementById('ukeTuningWrap').style.display = inst==='ukulele'?'flex':'none';
+  document.getElementById('pianoOctaveWrap').style.display = inst==='piano'?'flex':'none';
+  document.getElementById('sepPos').style.display = inst==='piano'?'none':'';
+  document.getElementById('posTabs').style.display = inst==='piano'?'none':'';
+
+  // Reset state
+  activeNotes={}; mutedStrings={}; pianoActiveKeys.clear();
+  currentPosIdx = 0;
+  scaleOverlay=''; document.getElementById('scaleSel').value='';
+
+  document.getElementById('stInst').textContent = INSTRUMENTS[inst].name;
+
+  if (inst === 'piano') {
+    initPiano();
+    applyPianoChord(0);
+    updatePositionsPanel(null);
+  } else {
+    initFretboard();
+    const voicings = getVoicings(currentRoot, currentType, inst);
+    applyChord(0);
+  }
+  buildProgPresets();
+  updateStatus();
+}
+
+function setMode(m) {
+  appMode=m;
+  document.getElementById('modeExplore').classList.toggle('active',m==='explore');
+  document.getElementById('modeDetect').classList.toggle('active',m==='detect');
+  document.getElementById('stMode').textContent=m;
+  if (m==='detect') {
+    activeNotes={}; mutedStrings={}; pianoActiveKeys.clear();
+    updateStringLabelColors();
+    if (instrument==='piano') drawPiano(); else drawFretboard();
+    document.getElementById('chordName').textContent='—';
+    document.getElementById('chordNotes').textContent='click to detect';
+    document.getElementById('chordIntervals').textContent='';
+  } else {
+    if (instrument==='piano') applyPianoChord(); else applyChord(currentPosIdx);
+  }
+}
+
+function setSoundType(t) {
+  soundType=t;
+  document.getElementById('sndAcoustic').classList.toggle('active',t==='acoustic');
+  document.getElementById('sndElectric').classList.toggle('active',t==='electric');
+  document.getElementById('stSound').textContent=t;
+}
+
+function setUkeTuning(t) {
+  ukeTuning=t;
+  document.getElementById('ukeHigh').classList.toggle('active',t==='high');
+  document.getElementById('ukeLow').classList.toggle('active',t==='low');
+  INSTRUMENTS.ukulele.open = t==='high' ? [55,60,64,69] : [43,60,64,69];
+  activeNotes={}; mutedStrings={};
+  initFretboard();
+  applyChord(currentPosIdx);
+}
+
+function setPianoOctaves(n) {
+  pianoOctaves=n;
+  [2,3,4].forEach(x=>document.getElementById(`oct${x}`).classList.toggle('active',x===n));
+  initPiano(); applyPianoChord();
+}
+
+function onChordChange() {
+  currentRoot=document.getElementById('rootSel').value;
+  currentType=document.getElementById('typeSel').value;
+  currentPosIdx=0;
+  currentPosIdx = 0;
+  if (appMode==='explore') {
+    if (instrument==='piano') { applyPianoChord(0); updatePositionsPanel(null); }
+    else applyChord(0);
+  }
+  buildProgPresets();
+  updateStatus();
+}
+
+function onScaleChange() {
+  scaleOverlay=document.getElementById('scaleSel').value;
+  if (instrument!=='piano') drawFretboard();
+}
+
+function clearBoard() {
+  activeNotes={}; mutedStrings={}; pianoActiveKeys.clear();
+  updateStringLabelColors();
+  if (instrument==='piano') drawPiano(); else drawFretboard();
+  if (appMode==='detect') {
+    document.getElementById('chordName').textContent='—';
+    document.getElementById('chordNotes').textContent='click to detect';
+    document.getElementById('chordIntervals').textContent='';
+  }
+  updateStatus();
+}
+
+function updateStatus() {
+  const suffix=CHORD_SUFFIX[currentType]||currentType;
+  document.getElementById('stChord').textContent=currentRoot+suffix;
+  const count = instrument==='piano' ? pianoActiveKeys.size :
+    Object.values(activeNotes).filter(n=>n&&n.fret!==undefined).length;
+  document.getElementById('stNotes').textContent=count;
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
+  initFretboard();
+  const voicings = getVoicings(currentRoot, currentType, instrument);
+  applyChord(0);
+  buildProgPresets();
+  updateStatus();
+  document.getElementById('rootSel').addEventListener('change', buildProgPresets);
+});
+</script>
+</body>
+</html>
