@@ -190,10 +190,10 @@ input[type=range]{flex:1;accent-color:var(--acc);height:3px;}
   display:none;position:fixed;bottom:60px;left:0;right:0;z-index:90;
   background:var(--s1);border-top:1px solid var(--b1);
   max-height:65vh;overflow-y:auto;
-  transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);
+  transform:translateY(0);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
-.mob-drawer.open{transform:translateY(0);}
+.mob-drawer.closed{transform:translateY(100%);}
 .mob-drawer-handle{
   width:36px;height:4px;background:var(--b2);border-radius:2px;
   margin:10px auto 6px;flex-shrink:0;
@@ -1778,13 +1778,17 @@ function updateStatus() {
 // ═══════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', ()=>{
   initFretboard();
-  const voicings = getVoicings(currentRoot, currentType, instrument);
   applyChord(0);
   buildProgPresets();
   buildBeatDots();
   updateStatus();
   document.getElementById('rootSel').addEventListener('change', buildProgPresets);
-  initMobile();
+  // Delay initMobile so viewport dimensions have settled after first paint,
+  // then re-run applyChord so positions badges are rebuilt with mobile fret widths
+  setTimeout(()=>{
+    initMobile();
+    if (isMobile()) applyChord(0);
+  }, 120);
 });
 
 // ═══════════════════════════════════════════════════
@@ -1806,7 +1810,8 @@ function mobSwitchInst(inst) {
   if (ukeTune) ukeTune.style.display = inst==='ukulele' ? '' : 'none';
   if (pianoOct) pianoOct.style.display = inst==='piano' ? '' : 'none';
   if (scaleWrap) scaleWrap.style.display = inst==='piano' ? 'none' : '';
-  updateMobPositions();
+  // switchInstrument already calls applyChord/applyPianoChord -> updatePositionsPanel
+  // which builds live mobile badges directly — no extra call needed here
 }
 
 let mobDrawerOpen = false;
@@ -1815,7 +1820,7 @@ function toggleMobDrawer() {
   mobDrawerOpen = !mobDrawerOpen;
   const d = document.getElementById('mobDrawer');
   const btn = document.getElementById('mobPanelBtn');
-  d.classList.toggle('open', mobDrawerOpen);
+  d.classList.toggle('closed', !mobDrawerOpen);
   btn.classList.toggle('panel-open', mobDrawerOpen);
 }
 function openMobDrawer(tab) {
@@ -1823,7 +1828,7 @@ function openMobDrawer(tab) {
   mobDrawerOpen = true;
   const d = document.getElementById('mobDrawer');
   const btn = document.getElementById('mobPanelBtn');
-  d.classList.add('open');
+  d.classList.remove('closed');
   btn.classList.add('panel-open');
   // activate tab
   document.querySelectorAll('.mob-dtab').forEach((t,i) => {
@@ -1856,19 +1861,7 @@ function updateMobChord() {
   if (mi) mi.textContent = intervals;
 }
 
-// Sync positions to mobile badges
-function updateMobPositions() {
-  const el = document.getElementById('mobPosBadges');
-  if (!el) return;
-  // Mirror the desktop posBadges
-  const src = document.getElementById('posBadges');
-  if (src) el.innerHTML = src.innerHTML;
-  // Rewire onclick to also close drawer
-  el.querySelectorAll('.pbadge').forEach(b => {
-    const origClick = b.onclick;
-    b.addEventListener('click', () => { /* badge click already wired via innerHTML copy, handled by desktop logic */ });
-  });
-}
+// updateMobPositions removed — updatePositionsPanel handles mobile badges directly
 
 // Sync FX sliders mobile ↔ desktop
 function syncFX(type, val) {
@@ -1917,25 +1910,25 @@ window.addEventListener('resize', () => {
 // Init mobile on load
 function initMobile() {
   if (!isMobile()) return;
+  // Set narrower fret dims FIRST — initFretboard below will use them
+  INSTRUMENTS.guitar.fretWidth = 36;
+  INSTRUMENTS.guitar.strHeight = 32;
+  INSTRUMENTS.ukulele.fretWidth = 42;
+  INSTRUMENTS.ukulele.strHeight = 34;
   // Default to 2 octaves on piano for mobile
   pianoOctaves = 2;
   document.getElementById('oct3').classList.remove('active');
   document.getElementById('oct2').classList.add('active');
   document.getElementById('mobOct3').classList.remove('active');
   document.getElementById('mobOct2').classList.add('active');
-  // Narrower frets on guitar/uke
-  INSTRUMENTS.guitar.fretWidth = 36;
-  INSTRUMENTS.guitar.strHeight = 32;
-  INSTRUMENTS.ukulele.fretWidth = 42;
-  INSTRUMENTS.ukulele.strHeight = 34;
-  // Sync beat dots
+  // Rebuild canvas with mobile dimensions
+  if (instrument !== 'piano') initFretboard(); else initPiano();
+  // Sync beat dots, chord display, presets
   buildBeatDots();
-  // Initial mob chord sync
   updateMobChord();
   buildMobProgPresets();
-  // Open panel drawer by default
+  // Drawer is open by default (CSS default state), just sync state vars
   mobDrawerOpen = true;
-  document.getElementById('mobDrawer').classList.add('open');
   document.getElementById('mobPanelBtn').classList.add('panel-open');
 }
 
